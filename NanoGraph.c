@@ -198,8 +198,6 @@ void InitializeStacks(size_t initialCapacity) {
     upStatckCapacity = initialCapacity;
     upStackSize = 0;
     upStack = (nGraphNode_h *)malloc(upStatckCapacity * sizeof(nGraphNode_h));
-
-    //printf("Initialized stacks with capacity %lu\n", initialCapacity);  
 }
 
 // Free the stacks when no longer needed
@@ -289,8 +287,11 @@ void LayoutNode(nGraphNode_h node)
     // Start with the userRect as the base rectangle
     //node->calculatedRect = node->userRect;
 
-    switch (node->parentLayout) {
-        case LAYOUT_STACK: {
+    switch (node->parentLayout) 
+    {
+        case LAYOUT_STACK: 
+        {
+
             // Variables to track the starting positions
             float currentX = node->calculatedRect.x;
             float currentY = node->calculatedRect.y;
@@ -311,63 +312,209 @@ void LayoutNode(nGraphNode_h node)
                 }
 
             }
-            break;
-        }
+           
+        } break;
 
-        case LAYOUT_DOCK: {
+        case LAYOUT_DOCK: 
+        {
             // Simplified DockPanel logic, where children are docked to edges
             float left = node->calculatedRect.x;
             float top = node->calculatedRect.y;
             float right = node->calculatedRect.x + node->calculatedRect.width;
             float bottom = node->calculatedRect.y + node->calculatedRect.height;
 
-            for (size_t i = 0; i < node->child_count; i++) {
+            for (size_t i = 0; i < node->child_count; i++) 
+            {
                 nGraphNode_h child = node->children[i];
-                if (i < node->child_count - 1) {
+                if (i < node->child_count - 1) 
+                {
                     /* not last child */
-                    switch (child->childDockPosition) {
+                    switch (child->childDockPosition) 
+                    {
                         case DOCK_LEFT:
+                        {
+                            // assign calculated rect based on dock position
                             child->calculatedRect.x = left;
-                            child->calculatedRect.y = top;
-                            child->calculatedRect.height = bottom - top;
                             child->calculatedRect.width = child->calculatedSize.width;  
                             left += child->calculatedRect.width;
-                            break;
+
+                            // assign vertical properties based on alignment
+                            switch (child->childVerticalAlignment) 
+                            {
+                                case VERTICAL_ALIGNMENT_TOP:
+                                {
+                                    child->calculatedRect.y = top;
+                                    child->calculatedRect.height = child->calculatedSize.height;
+                                } break;
+                                case VERTICAL_ALIGNMENT_CENTER:
+                                {
+                                    child->calculatedRect.y = top + (bottom - top - child->calculatedSize.height) / 2;
+                                    child->calculatedRect.height = child->calculatedSize.height;
+                                } break;
+                                case VERTICAL_ALIGNMENT_BOTTOM:
+                                {
+                                    child->calculatedRect.y = bottom - child->calculatedSize.height;
+                                    child->calculatedRect.height = child->calculatedSize.height;
+                                } break;
+                                default:
+                                {
+                                    child->calculatedRect.y = top;
+                                    child->calculatedRect.height = bottom - top;
+                                } break;
+                            }
+                       
+                        } break;
 
                         case DOCK_TOP:
-                            child->calculatedRect.x = left;
+                        {
                             child->calculatedRect.y = top;
-                            child->calculatedRect.width = right - left;
                             child->calculatedRect.height = child->calculatedSize.height;
                             top += child->calculatedRect.height;
-                            break;
+
+                            switch (child->childHorizontalAlignment)
+                            {
+                                case HORIZONTAL_ALIGNMENT_LEFT:
+                                {
+                                    child->calculatedRect.x = left;
+                                    child->calculatedRect.width = child->calculatedSize.width;
+                                } break;
+                                case HORIZONTAL_ALIGNMENT_CENTER:
+                                {
+                                    child->calculatedRect.x = left + (right - left - child->calculatedSize.width) / 2;
+                                    child->calculatedRect.width = child->calculatedSize.width;
+                                } break;
+                                case HORIZONTAL_ALIGNMENT_RIGHT:
+                                {
+                                    child->calculatedRect.x = right - child->calculatedSize.width;
+                                    child->calculatedRect.width = child->calculatedSize.width;
+                                } break;
+                                default:
+                                {
+                                    child->calculatedRect.x = left;
+                                    child->calculatedRect.width = right - left;
+                                } break;
+                            }
+                        } break;
 
                         case DOCK_RIGHT:
+                        {
                             child->calculatedRect.x = right - child->calculatedRect.width;
-                            child->calculatedRect.y = top;
                             child->calculatedRect.width = child->calculatedSize.width;  
-                            child->calculatedRect.height = bottom - top;
                             right -= child->calculatedRect.width;
-                            break;
+
+                            switch (child->childVerticalAlignment) {
+                                case VERTICAL_ALIGNMENT_TOP:
+                                {
+                                    child->calculatedRect.y = top;
+                                    child->calculatedRect.height = child->calculatedSize.height;
+                                } break;
+                                case VERTICAL_ALIGNMENT_CENTER:
+                                {
+                                    child->calculatedRect.y = top + (bottom - top - child->calculatedSize.height) / 2;
+                                    child->calculatedRect.height = child->calculatedSize.height;
+                                } break;
+                                case VERTICAL_ALIGNMENT_BOTTOM:
+                                {
+                                    child->calculatedRect.y = bottom - child->calculatedSize.height;
+                                    child->calculatedRect.height = child->calculatedSize.height;
+                                } break;
+                                default:
+                                {
+                                    child->calculatedRect.y = top;
+                                    child->calculatedRect.height = bottom - top;
+                                } break;
+                            }
+                        } break;
 
                         case DOCK_BOTTOM:
-                            child->calculatedRect.x = left;
+                        {
                             child->calculatedRect.y = bottom - child->calculatedRect.height;
-                            child->calculatedRect.width = right - left;
                             child->calculatedRect.height = child->calculatedSize.height;
                             bottom -= child->calculatedRect.height;
-                            break;
+
+                            switch (child->childHorizontalAlignment)
+                            {
+                                case HORIZONTAL_ALIGNMENT_LEFT:
+                                {
+                                    child->calculatedRect.x = left;
+                                    child->calculatedRect.width = child->calculatedSize.width;
+                                } break;
+                                case HORIZONTAL_ALIGNMENT_CENTER:
+                                {
+                                    child->calculatedRect.x = left + (right - left - child->calculatedSize.width) / 2;
+                                    child->calculatedRect.width = child->calculatedSize.width;
+                                } break;
+                                case HORIZONTAL_ALIGNMENT_RIGHT:
+                                {
+                                    child->calculatedRect.x = right - child->calculatedSize.width;
+                                    child->calculatedRect.width = child->calculatedSize.width;
+                                } break;
+                                default:
+                                {
+                                    child->calculatedRect.x = left;
+                                    child->calculatedRect.width = right - left;
+                                } break;
+                            }
+                        } break;
+                    }      
+                        
                 }
-                } else {
+                else 
+                {
                     /* last child */
-                    child->calculatedRect.x = left;
-                    child->calculatedRect.y = top;
-                    child->calculatedRect.width = right - left;
-                    child->calculatedRect.height = bottom - top;
+
+                    switch (child->childHorizontalAlignment)
+                    {
+                        case HORIZONTAL_ALIGNMENT_LEFT:
+                        {
+                            child->calculatedRect.x = left;
+                            child->calculatedRect.width = right - left;
+                        } break;
+                        case HORIZONTAL_ALIGNMENT_CENTER:
+                        {
+                            child->calculatedRect.x = left + (right - left - child->calculatedSize.width) / 2;
+                            child->calculatedRect.width = child->calculatedSize.width;
+                        } break;
+                        case HORIZONTAL_ALIGNMENT_RIGHT:
+                        {
+                            child->calculatedRect.x = right - child->calculatedSize.width;
+                            child->calculatedRect.width = child->calculatedSize.width;
+                        } break;
+                        default:
+                        {
+                            child->calculatedRect.x = left;
+                            child->calculatedRect.width = right - left;
+                        } break;
+                    }
+
+                    switch (child->childVerticalAlignment)
+                    {
+                        case VERTICAL_ALIGNMENT_TOP:
+                        {
+                            child->calculatedRect.y = top;
+                            child->calculatedRect.height = bottom - top;
+                        } break;
+                        case VERTICAL_ALIGNMENT_CENTER:
+                        {
+                            child->calculatedRect.y = top + (bottom - top - child->calculatedSize.height) / 2;
+                            child->calculatedRect.height = child->calculatedSize.height;
+                        } break;
+                        case VERTICAL_ALIGNMENT_BOTTOM:
+                        {
+                            child->calculatedRect.y = bottom - child->calculatedSize.height;
+                            child->calculatedRect.height = child->calculatedSize.height;
+                        } break;
+                        default:
+                        {
+                            child->calculatedRect.y = top;
+                            child->calculatedRect.height = bottom - top;
+                        } break;
+                    }
+                    
                 }
             }
-            break;
-        }
+
+        } break;
 
         case LAYOUT_GRID: {
             // Basic grid logic, assuming the grid is pre-defined with rows and columns
@@ -398,7 +545,6 @@ void LayoutNode(nGraphNode_h node)
                 nGraphNode_h child = node->children[i];
                 child->calculatedRect = child->userRect;
 
-                // Recur to layout the child
             }
             break;
         }

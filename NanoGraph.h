@@ -62,6 +62,24 @@ typedef struct
     size_t columnSpan;
 } nGraphChildGridPosition;
 
+typedef enum
+{
+    HORIZONTAL_ALIGNMENT_FILL,
+    HORIZONTAL_ALIGNMENT_LEFT,
+    HORIZONTAL_ALIGNMENT_CENTER,
+    HORIZONTAL_ALIGNMENT_RIGHT
+} nGraphChildHorizontalAlignment;
+
+typedef enum
+{
+    VERTICAL_ALIGNMENT_FILL,
+    VERTICAL_ALIGNMENT_TOP,
+    VERTICAL_ALIGNMENT_CENTER,
+    VERTICAL_ALIGNMENT_BOTTOM
+} nGraphChildVerticalAlignment;
+
+
+
 typedef struct
 {
     float x;
@@ -85,6 +103,8 @@ typedef struct nGraphNode
 
     nGraphChildDockPosition childDockPosition;
     nGraphChildGridPosition childGridPosition;
+    nGraphChildHorizontalAlignment childHorizontalAlignment;
+    nGraphChildVerticalAlignment childVerticalAlignment;
 
     nGraphRect userRect;
 
