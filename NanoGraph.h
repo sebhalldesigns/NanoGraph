@@ -90,6 +90,10 @@ typedef struct nGraphNode
 
     nGraphSize calculatedSize;
     nGraphRect calculatedRect;
+
+    float red;
+    float green;
+    float blue;
     
     nGraphNode_h parent;
     nGraphNode_h next;
@@ -103,6 +107,7 @@ nGraphNode_h NanoGraph_InsertNode(nGraphNode_h parent);
 
 void NanoGraph_Recalculate(nGraphNode_h node);
 
+nGraphNode_h NanoGraph_GetNextNode(nGraphNode_h node);
 
 
 #endif // NANOGRAH_H
