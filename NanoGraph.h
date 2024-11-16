@@ -8,11 +8,11 @@
 typedef struct nGraphNode* nGraphNode_h;
 
 typedef enum
-{
+{   
+    LAYOUT_NONE,
     LAYOUT_STACK,
     LAYOUT_DOCK,
-    LAYOUT_GRID,
-    LAYOUT_ABSOLUTE
+    LAYOUT_GRID
 } nGraphParentLayout;
 
 typedef enum

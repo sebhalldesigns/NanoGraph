@@ -250,35 +250,51 @@ int UpStack_IsEmpty() {
 
 void MeasureNode(nGraphNode_h node)
 {
-    switch (node->parentLayout) {
+    switch (node->parentLayout) 
+    {
         case LAYOUT_STACK:
-            node->calculatedSize.width = node->userRect.width;
-            node->calculatedSize.height = node->userRect.height;
-            for (size_t i = 0; i < node->child_count; i++) {
-                if (node->parentStackOrientation == STACK_HORIZONTAL) {
-                    node->calculatedSize.width += node->children[i]->calculatedSize.width;
-                    node->calculatedSize.height = fmaxf(node->calculatedSize.height, node->children[i]->calculatedSize.height);
-                } else {
-                    node->calculatedSize.height += node->children[i]->calculatedSize.height;
-                    node->calculatedSize.width = fmaxf(node->calculatedSize.width, node->children[i]->calculatedSize.width);
-                }
+        {
+            switch (node->parentStackOrientation) 
+            {
+                case STACK_HORIZONTAL:
+                {
+                    node->calculatedSize.width = 0;
+                    node->calculatedSize.height = node->userRect.height;
+                    for (size_t i = 0; i < node->child_count; i++) {
+                        node->calculatedSize.width += node->children[i]->calculatedSize.width;
+                    }
+                } break;
+                case STACK_VERTICAL:
+                {
+                    node->calculatedSize.width = node->userRect.width;
+                    node->calculatedSize.height = 0;
+                    for (size_t i = 0; i < node->child_count; i++) {
+                        node->calculatedSize.height += node->children[i]->calculatedSize.height;
+                    }
+                } break;
             }
-            break;
 
+        } break;
+        
+            
         case LAYOUT_DOCK:
+        {
             node->calculatedSize.width = node->userRect.width;
             node->calculatedSize.height = node->userRect.height;
-            break;
-
+        } break;
+            
         case LAYOUT_GRID:
+        {
             node->calculatedSize.width = node->userRect.width;
             node->calculatedSize.height = node->userRect.height;
-            break;
-
-        case LAYOUT_ABSOLUTE:
+        } break;
+            
+        case LAYOUT_NONE:
+        {
             node->calculatedSize.width = node->userRect.width;
-            node->calculatedSize.height = node->userRect.height;
-            break;
+            node->calculatedSize.height = node->userRect.height;   
+        } break; 
+            
     }
 }
 
@@ -291,26 +307,77 @@ void LayoutNode(nGraphNode_h node)
     {
         case LAYOUT_STACK: 
         {
-
             // Variables to track the starting positions
             float currentX = node->calculatedRect.x;
             float currentY = node->calculatedRect.y;
 
-            // Iterate over children and layout based on orientation
-            for (size_t i = 0; i < node->child_count; i++) {
-                nGraphNode_h child = node->children[i];
+            switch (node->parentStackOrientation) 
+            {
+                case STACK_HORIZONTAL:
+                {
+                    for (size_t i = 0; i < node->child_count; i++) {
+                        nGraphNode_h child = node->children[i];
+                        child->calculatedRect.x = currentX;
+                        child->calculatedRect.width = child->calculatedSize.width;
+                        currentX += child->calculatedRect.width;
+                        switch (child->childVerticalAlignment)
+                        {
+                            case VERTICAL_ALIGNMENT_TOP:
+                            {
+                                child->calculatedRect.y = node->calculatedRect.y;
+                                child->calculatedRect.height = child->calculatedSize.height;
+                            } break;
+                            case VERTICAL_ALIGNMENT_CENTER:
+                            {
+                                child->calculatedRect.y = node->calculatedRect.y + (node->calculatedRect.height - child->calculatedSize.height) / 2;
+                                child->calculatedRect.height = child->calculatedSize.height;
+                            } break;
+                            case VERTICAL_ALIGNMENT_BOTTOM:
+                            {
+                                child->calculatedRect.y = node->calculatedRect.y + node->calculatedRect.height - child->calculatedSize.height;
+                                child->calculatedRect.height = child->calculatedSize.height;
+                            } break;
+                            default:
+                            {
+                                child->calculatedRect.y = node->calculatedRect.y;
+                                child->calculatedRect.height = node->calculatedRect.height;
+                            } break;
+                        }
+                    }
+                } break;
+                case STACK_VERTICAL:
+                {
+                    for (size_t i = 0; i < node->child_count; i++) {
+                        nGraphNode_h child = node->children[i];
+                        child->calculatedRect.y = currentY;
+                        child->calculatedRect.height = child->calculatedSize.height;
+                        currentY += child->calculatedRect.height;
 
-                // Set child position based on stack orientation
-                if (node->parentStackOrientation == STACK_HORIZONTAL) {
-                    child->calculatedRect.x = currentX;
-                    child->calculatedRect.y = node->calculatedRect.y;
-                    currentX += child->calculatedRect.width;
-                } else { // STACK_VERTICAL
-                    child->calculatedRect.x = node->calculatedRect.x;
-                    child->calculatedRect.y = currentY;
-                    currentY += child->calculatedRect.height;
-                }
-
+                        switch (child->childHorizontalAlignment)
+                        {
+                            case HORIZONTAL_ALIGNMENT_LEFT:
+                            {
+                                child->calculatedRect.x = node->calculatedRect.x;
+                                child->calculatedRect.width = child->calculatedSize.width;
+                            } break;
+                            case HORIZONTAL_ALIGNMENT_CENTER:
+                            {
+                                child->calculatedRect.x = node->calculatedRect.x + (node->calculatedRect.width - child->calculatedSize.width) / 2;
+                                child->calculatedRect.width = child->calculatedSize.width;
+                            } break;
+                            case HORIZONTAL_ALIGNMENT_RIGHT:
+                            {
+                                child->calculatedRect.x = node->calculatedRect.x + node->calculatedRect.width - child->calculatedSize.width;
+                                child->calculatedRect.width = child->calculatedSize.width;
+                            } break;
+                            default:
+                            {
+                                child->calculatedRect.x = node->calculatedRect.x;
+                                child->calculatedRect.width = node->calculatedRect.width;
+                            } break;
+                        }
+                    }
+                } break;
             }
            
         } break;
@@ -539,7 +606,7 @@ void LayoutNode(nGraphNode_h node)
             break;
         }
 
-        case LAYOUT_ABSOLUTE: {
+        case LAYOUT_NONE: {
             // Use the userRect directly for positioning each child
             for (size_t i = 0; i < node->child_count; i++) {
                 nGraphNode_h child = node->children[i];
@@ -551,8 +618,8 @@ void LayoutNode(nGraphNode_h node)
     }
 
     // Output the calculated position and size for debugging
-    //printf("Laid out node with ID %lu at (%f, %f, %f, %f)\n",
-    //       node,
-    //       node->calculatedRect.x, node->calculatedRect.y,
-    //       node->calculatedRect.width, node->calculatedRect.height);
+    printf("Laid out node with ID %lu at (%f, %f, %f, %f)\n",
+           node,
+           node->calculatedRect.x, node->calculatedRect.y,
+           node->calculatedRect.width, node->calculatedRect.height);
 }
