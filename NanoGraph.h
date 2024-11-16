@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include <NanoDrawing.h>
+
 typedef struct nGraphNode* nGraphNode_h;
 
 typedef enum
@@ -102,6 +104,9 @@ typedef struct
 
 typedef struct nGraphNode 
 {
+
+    const char* name;
+    
     nGraphParentLayout parentLayout;
 
     nGraphParentStackOrientation parentStackOrientation;
@@ -120,9 +125,8 @@ typedef struct nGraphNode
     nGraphThickness margin;
     nGraphThickness padding;
 
-    float red;
-    float green;
-    float blue;
+    nDrawColor backgroundColor;
+    nDrawing drawing;
     
     nGraphNode_h parent;
     nGraphNode_h next;
