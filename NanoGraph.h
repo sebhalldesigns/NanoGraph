@@ -78,7 +78,13 @@ typedef enum
     VERTICAL_ALIGNMENT_BOTTOM
 } nGraphChildVerticalAlignment;
 
-
+typedef struct
+{
+    float left;
+    float top;
+    float right;
+    float bottom;
+} nGraphThickness;
 
 typedef struct
 {
@@ -110,6 +116,9 @@ typedef struct nGraphNode
 
     nGraphSize calculatedSize;
     nGraphRect calculatedRect;
+
+    nGraphThickness margin;
+    nGraphThickness padding;
 
     float red;
     float green;

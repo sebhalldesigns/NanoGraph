@@ -254,6 +254,10 @@ void MeasureNode(nGraphNode_h node)
     {
         case LAYOUT_STACK:
         {
+            /* stack size is created by accumulating all child sizes along the stack orientation.
+             * It will therefore have a width or height of 0 with no children.
+            */
+
             switch (node->parentStackOrientation) 
             {
                 case STACK_HORIZONTAL:
@@ -274,23 +278,60 @@ void MeasureNode(nGraphNode_h node)
                 } break;
             }
 
+            /* add padding to calculated size */
+            node->calculatedSize.width += node->padding.left + node->padding.right;
+            node->calculatedSize.height += node->padding.top + node->padding.bottom;
+
         } break;
         
             
         case LAYOUT_DOCK:
         {
-            node->calculatedSize.width = node->userRect.width;
-            node->calculatedSize.height = node->userRect.height;
+            /* dock size is determined by the size of it's children
+            */
+
+            node->calculatedSize.width = 0;
+            node->calculatedSize.height = 0;
+
+            for (size_t i = 0; i < node->child_count; i++) {
+                nGraphNode_h child = node->children[i];
+                switch (child->childDockPosition) {
+                    case DOCK_LEFT:
+                    case DOCK_RIGHT:
+                    {
+                        node->calculatedSize.width += child->calculatedSize.width;
+                        node->calculatedSize.height = fmaxf(node->calculatedSize.height, child->calculatedSize.height);
+                    } break;
+                    case DOCK_TOP:
+                    case DOCK_BOTTOM:
+                    {
+                        node->calculatedSize.width = fmaxf(node->calculatedSize.width, child->calculatedSize.width);
+                        node->calculatedSize.height += child->calculatedSize.height;
+                    } break;
+                }
+            }
+
+            /* add padding to calculated size */
+            node->calculatedSize.width += node->padding.left + node->padding.right;
+            node->calculatedSize.height += node->padding.top + node->padding.bottom;
         } break;
             
         case LAYOUT_GRID:
         {
-            node->calculatedSize.width = node->userRect.width;
-            node->calculatedSize.height = node->userRect.height;
+            /* grid size is determined by
+            ** the number of rows and columns, and the size of the grid.
+            ** TODO: Implement grid size calculation 
+            */
+
+            node->calculatedSize.width = 0;
+            node->calculatedSize.height = 0;
+
         } break;
             
         case LAYOUT_NONE:
         {
+            /* NONE layout size is determined by the userRect
+            */
             node->calculatedSize.width = node->userRect.width;
             node->calculatedSize.height = node->userRect.height;   
         } break; 
@@ -300,9 +341,6 @@ void MeasureNode(nGraphNode_h node)
 
 void LayoutNode(nGraphNode_h node)
 {
-    // Start with the userRect as the base rectangle
-    //node->calculatedRect = node->userRect;
-
     switch (node->parentLayout) 
     {
         case LAYOUT_STACK: 
@@ -387,8 +425,8 @@ void LayoutNode(nGraphNode_h node)
             // Simplified DockPanel logic, where children are docked to edges
             float left = node->calculatedRect.x;
             float top = node->calculatedRect.y;
-            float right = node->calculatedRect.x + node->calculatedRect.width;
-            float bottom = node->calculatedRect.y + node->calculatedRect.height;
+            float right = left + node->calculatedRect.width;
+            float bottom = top + node->calculatedRect.height;
 
             for (size_t i = 0; i < node->child_count; i++) 
             {
@@ -401,8 +439,8 @@ void LayoutNode(nGraphNode_h node)
                         case DOCK_LEFT:
                         {
                             // assign calculated rect based on dock position
-                            child->calculatedRect.x = left;
-                            child->calculatedRect.width = child->calculatedSize.width;  
+                            child->calculatedRect.x = left + node->margin.left;
+                            child->calculatedRect.width = child->calculatedSize.width + node->margin.left + node->margin.right;  
                             left += child->calculatedRect.width;
 
                             // assign vertical properties based on alignment
@@ -410,7 +448,7 @@ void LayoutNode(nGraphNode_h node)
                             {
                                 case VERTICAL_ALIGNMENT_TOP:
                                 {
-                                    child->calculatedRect.y = top;
+                                    child->calculatedRect.y = top + node->margin.top;
                                     child->calculatedRect.height = child->calculatedSize.height;
                                 } break;
                                 case VERTICAL_ALIGNMENT_CENTER:
@@ -420,13 +458,13 @@ void LayoutNode(nGraphNode_h node)
                                 } break;
                                 case VERTICAL_ALIGNMENT_BOTTOM:
                                 {
-                                    child->calculatedRect.y = bottom - child->calculatedSize.height;
+                                    child->calculatedRect.y = bottom - (child->calculatedSize.height + node->margin.bottom);
                                     child->calculatedRect.height = child->calculatedSize.height;
                                 } break;
                                 default:
                                 {
-                                    child->calculatedRect.y = top;
-                                    child->calculatedRect.height = bottom - top;
+                                    child->calculatedRect.y = top + node->margin.top;
+                                    child->calculatedRect.height = bottom - (top + node->margin.top + node->margin.bottom);
                                 } break;
                             }
                        
@@ -434,15 +472,15 @@ void LayoutNode(nGraphNode_h node)
 
                         case DOCK_TOP:
                         {
-                            child->calculatedRect.y = top;
+                            child->calculatedRect.y = top + node->margin.top;
                             child->calculatedRect.height = child->calculatedSize.height;
-                            top += child->calculatedRect.height;
+                            top += child->calculatedRect.height + node->margin.top + node->margin.bottom;
 
                             switch (child->childHorizontalAlignment)
                             {
                                 case HORIZONTAL_ALIGNMENT_LEFT:
                                 {
-                                    child->calculatedRect.x = left;
+                                    child->calculatedRect.x = left + node->margin.left;
                                     child->calculatedRect.width = child->calculatedSize.width;
                                 } break;
                                 case HORIZONTAL_ALIGNMENT_CENTER:
@@ -452,27 +490,27 @@ void LayoutNode(nGraphNode_h node)
                                 } break;
                                 case HORIZONTAL_ALIGNMENT_RIGHT:
                                 {
-                                    child->calculatedRect.x = right - child->calculatedSize.width;
+                                    child->calculatedRect.x = right - (child->calculatedSize.width + node->margin.right);
                                     child->calculatedRect.width = child->calculatedSize.width;
                                 } break;
                                 default:
                                 {
-                                    child->calculatedRect.x = left;
-                                    child->calculatedRect.width = right - left;
+                                    child->calculatedRect.x = left + node->margin.left;
+                                    child->calculatedRect.width = right - (left + node->margin.left + node->margin.right);
                                 } break;
                             }
                         } break;
 
                         case DOCK_RIGHT:
                         {
-                            child->calculatedRect.x = right - child->calculatedRect.width;
+                            child->calculatedRect.x = right - (child->calculatedRect.width + node->margin.right);
                             child->calculatedRect.width = child->calculatedSize.width;  
-                            right -= child->calculatedRect.width;
+                            right -= child->calculatedRect.width + node->margin.right + node->margin.left;
 
                             switch (child->childVerticalAlignment) {
                                 case VERTICAL_ALIGNMENT_TOP:
                                 {
-                                    child->calculatedRect.y = top;
+                                    child->calculatedRect.y = top + node->margin.top;
                                     child->calculatedRect.height = child->calculatedSize.height;
                                 } break;
                                 case VERTICAL_ALIGNMENT_CENTER:
@@ -482,28 +520,28 @@ void LayoutNode(nGraphNode_h node)
                                 } break;
                                 case VERTICAL_ALIGNMENT_BOTTOM:
                                 {
-                                    child->calculatedRect.y = bottom - child->calculatedSize.height;
+                                    child->calculatedRect.y = bottom - (child->calculatedSize.height + node->margin.bottom);
                                     child->calculatedRect.height = child->calculatedSize.height;
                                 } break;
                                 default:
                                 {
-                                    child->calculatedRect.y = top;
-                                    child->calculatedRect.height = bottom - top;
+                                    child->calculatedRect.y = top + node->margin.top;
+                                    child->calculatedRect.height = bottom - (top + node->margin.top + node->margin.bottom);
                                 } break;
                             }
                         } break;
 
                         case DOCK_BOTTOM:
                         {
-                            child->calculatedRect.y = bottom - child->calculatedRect.height;
+                            child->calculatedRect.y = bottom - (child->calculatedRect.height + node->margin.bottom);
                             child->calculatedRect.height = child->calculatedSize.height;
-                            bottom -= child->calculatedRect.height;
+                            bottom -= child->calculatedRect.height + node->margin.bottom + node->margin.top;
 
                             switch (child->childHorizontalAlignment)
                             {
                                 case HORIZONTAL_ALIGNMENT_LEFT:
                                 {
-                                    child->calculatedRect.x = left;
+                                    child->calculatedRect.x = left + node->margin.left;
                                     child->calculatedRect.width = child->calculatedSize.width;
                                 } break;
                                 case HORIZONTAL_ALIGNMENT_CENTER:
@@ -513,13 +551,13 @@ void LayoutNode(nGraphNode_h node)
                                 } break;
                                 case HORIZONTAL_ALIGNMENT_RIGHT:
                                 {
-                                    child->calculatedRect.x = right - child->calculatedSize.width;
+                                    child->calculatedRect.x = right - (child->calculatedSize.width + node->margin.right);
                                     child->calculatedRect.width = child->calculatedSize.width;
                                 } break;
                                 default:
                                 {
-                                    child->calculatedRect.x = left;
-                                    child->calculatedRect.width = right - left;
+                                    child->calculatedRect.x = left + node->margin.left;
+                                    child->calculatedRect.width = right - (left + node->margin.left + node->margin.right); 
                                 } break;
                             }
                         } break;
@@ -534,8 +572,8 @@ void LayoutNode(nGraphNode_h node)
                     {
                         case HORIZONTAL_ALIGNMENT_LEFT:
                         {
-                            child->calculatedRect.x = left;
-                            child->calculatedRect.width = right - left;
+                            child->calculatedRect.x = left + node->margin.left;
+                            child->calculatedRect.width = right - (left + node->margin.left + node->margin.right);
                         } break;
                         case HORIZONTAL_ALIGNMENT_CENTER:
                         {
@@ -544,13 +582,13 @@ void LayoutNode(nGraphNode_h node)
                         } break;
                         case HORIZONTAL_ALIGNMENT_RIGHT:
                         {
-                            child->calculatedRect.x = right - child->calculatedSize.width;
+                            child->calculatedRect.x = right - (child->calculatedSize.width + node->margin.right);
                             child->calculatedRect.width = child->calculatedSize.width;
                         } break;
                         default:
                         {
-                            child->calculatedRect.x = left;
-                            child->calculatedRect.width = right - left;
+                            child->calculatedRect.x = left + node->padding.left; 
+                            child->calculatedRect.width = right - (left + node->padding.left + node->padding.right);
                         } break;
                     }
 
@@ -558,8 +596,8 @@ void LayoutNode(nGraphNode_h node)
                     {
                         case VERTICAL_ALIGNMENT_TOP:
                         {
-                            child->calculatedRect.y = top;
-                            child->calculatedRect.height = bottom - top;
+                            child->calculatedRect.y = top + node->margin.top;
+                            child->calculatedRect.height = bottom - (top + node->margin.top + node->margin.bottom);
                         } break;
                         case VERTICAL_ALIGNMENT_CENTER:
                         {
@@ -568,13 +606,13 @@ void LayoutNode(nGraphNode_h node)
                         } break;
                         case VERTICAL_ALIGNMENT_BOTTOM:
                         {
-                            child->calculatedRect.y = bottom - child->calculatedSize.height;
+                            child->calculatedRect.y = bottom - (child->calculatedSize.height + node->margin.bottom);
                             child->calculatedRect.height = child->calculatedSize.height;
                         } break;
                         default:
                         {
-                            child->calculatedRect.y = top;
-                            child->calculatedRect.height = bottom - top;
+                            child->calculatedRect.y = top + node->padding.top;
+                            child->calculatedRect.height = bottom - (top + node->padding.top + node->padding.bottom);
                         } break;
                     }
                     
@@ -584,42 +622,22 @@ void LayoutNode(nGraphNode_h node)
         } break;
 
         case LAYOUT_GRID: {
-            // Basic grid logic, assuming the grid is pre-defined with rows and columns
-            int rows = node->parentGridProperties.rows;
-            int cols = node->parentGridProperties.columns;
-
-            float cellWidth = node->calculatedRect.width / cols;
-            float cellHeight = node->calculatedRect.height / rows;
-
-            for (size_t i = 0; i < node->child_count; i++) {
-                nGraphNode_h child = node->children[i];
-                int row = i / cols;
-                int col = i % cols;
-
-                child->calculatedRect.x = node->calculatedRect.x + col * cellWidth;
-                child->calculatedRect.y = node->calculatedRect.y + row * cellHeight;
-                child->calculatedRect.width = cellWidth;
-                child->calculatedRect.height = cellHeight;
-
-                // Recur to layout the child
-            }
-            break;
-        }
+            /*
+            ** TODO: Implement layout for GRID layout
+            */
+        } break;
 
         case LAYOUT_NONE: {
-            // Use the userRect directly for positioning each child
-            for (size_t i = 0; i < node->child_count; i++) {
-                nGraphNode_h child = node->children[i];
-                child->calculatedRect = child->userRect;
-
-            }
-            break;
-        }
+            
+            /* 
+            ** TODO: Implement layout for NONE layout
+            */
+        } break;
     }
 
     // Output the calculated position and size for debugging
-    printf("Laid out node with ID %lu at (%f, %f, %f, %f)\n",
-           node,
-           node->calculatedRect.x, node->calculatedRect.y,
-           node->calculatedRect.width, node->calculatedRect.height);
+    //printf("Laid out node with ID %lu at (%f, %f, %f, %f)\n",
+    //       node,
+    //       node->calculatedRect.x, node->calculatedRect.y,
+    //       node->calculatedRect.width, node->calculatedRect.height);
 }
